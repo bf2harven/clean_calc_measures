@@ -12,11 +12,14 @@ def execute_ICP(bl_pc, fu_pc, voxel_size, distance_threshold_factor, init_transf
 
     distance_threshold = voxel_size * distance_threshold_factor
 
-    result = o3d.pipelines.registration.registration_icp(bl_pc, fu_pc, distance_threshold, init_transformation,
-                                                         o3d.pipelines.registration.TransformationEstimationPointToPoint(),
-                                                         o3d.pipelines.registration.ICPConvergenceCriteria(max_iteration=5000))
-
-    return result
+    return o3d.pipelines.registration.registration_icp(
+        bl_pc,
+        fu_pc,
+        distance_threshold,
+        init_transformation,
+        o3d.pipelines.registration.TransformationEstimationPointToPoint(),
+        o3d.pipelines.registration.ICPConvergenceCriteria(max_iteration=5000),
+    )
 
 
 def extract_liver_contour_as_PC(liver_seg: np.ndarray, affine_matrix: np.ndarray) -> o3d.geometry.PointCloud:

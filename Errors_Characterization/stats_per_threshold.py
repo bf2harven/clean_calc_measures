@@ -148,9 +148,47 @@ if __name__ == '__main__':
 
     write_to_excel(optimal_df, writer, columns, 'tumor name', sheet_name='all diameters')
     write_to_excel(optimal_df[optimal_df['diameter'] <= 5], writer, columns, 'tumor name', sheet_name='diameter <= 5')
-    write_to_excel(optimal_df[(5 < optimal_df['diameter']) & (optimal_df['diameter'] <= 10)], writer, columns, 'tumor name', sheet_name='5 < diameter <= 10')
-    write_to_excel(optimal_df[(10 < optimal_df['diameter']) & (optimal_df['diameter'] <= 15)], writer, columns, 'tumor name', sheet_name='10 < diameter <= 15')
-    write_to_excel(optimal_df[(15 < optimal_df['diameter']) & (optimal_df['diameter'] <= 20)], writer, columns, 'tumor name', sheet_name='15 < diameter <= 20')
-    write_to_excel(optimal_df[(20 < optimal_df['diameter']) & (optimal_df['diameter'] <= 30)], writer, columns, 'tumor name', sheet_name='20 < diameter <= 30')
-    write_to_excel(optimal_df[30 < optimal_df['diameter']], writer, columns, 'tumor name', sheet_name='30 < diameter')
+    write_to_excel(
+        optimal_df[
+            (optimal_df['diameter'] > 5) & (optimal_df['diameter'] <= 10)
+        ],
+        writer,
+        columns,
+        'tumor name',
+        sheet_name='5 < diameter <= 10',
+    )
+    write_to_excel(
+        optimal_df[
+            (optimal_df['diameter'] > 10) & (optimal_df['diameter'] <= 15)
+        ],
+        writer,
+        columns,
+        'tumor name',
+        sheet_name='10 < diameter <= 15',
+    )
+    write_to_excel(
+        optimal_df[
+            (optimal_df['diameter'] > 15) & (optimal_df['diameter'] <= 20)
+        ],
+        writer,
+        columns,
+        'tumor name',
+        sheet_name='15 < diameter <= 20',
+    )
+    write_to_excel(
+        optimal_df[
+            (optimal_df['diameter'] > 20) & (optimal_df['diameter'] <= 30)
+        ],
+        writer,
+        columns,
+        'tumor name',
+        sheet_name='20 < diameter <= 30',
+    )
+    write_to_excel(
+        optimal_df[optimal_df['diameter'] > 30],
+        writer,
+        columns,
+        'tumor name',
+        sheet_name='30 < diameter',
+    )
     writer.save()

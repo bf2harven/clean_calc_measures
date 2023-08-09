@@ -16,7 +16,9 @@ import nibabel as nib
 
 
 def assert_same_case_ids(case_ids, test_lst):
-    assert len(case_ids) == len(test_lst), f'All the data directories should have the same number of .nii.gz files.'
+    assert len(case_ids) == len(
+        test_lst
+    ), 'All the data directories should have the same number of .nii.gz files.'
     for f in test_lst:
         c_id = os.path.basename(f).replace('.nii.gz', '')
         assert c_id in case_ids, f'The case id "{c_id}" doesn\'t exist in all data directories'
@@ -89,12 +91,12 @@ def nnunet_calculate_measures(gt_labels_path: str, pred_masks_paths: Union[str, 
     if ths is None:
         ths = [1]
 
+    # n = 1
+    n = None
+
     for pp in pred_masks_paths:
         pred_paths = sorted(glob(f'{pp}/*.nii.gz'))
         assert_same_case_ids(case_ids, pred_paths)
-
-        # n = 1
-        n = None
 
         GT_paths, pred_paths, roi_paths = GT_paths[:n], pred_paths[:n], roi_paths[:n]
 

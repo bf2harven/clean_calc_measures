@@ -108,11 +108,7 @@ class read_compare_excel:
 
             for i, hue in enumerate(unique_hues):
 
-                if hues_was_added:
-                    working_data = data[data[hues_name] == hue]
-                else:
-                    working_data = data
-
+                working_data = data[data[hues_name] == hue] if hues_was_added else data
                 mean_per_id = working_data.groupby(x).mean()
                 mean_precision = mean_per_id[precision_label]
                 mean_recall = mean_per_id[recall_label]
@@ -132,23 +128,23 @@ class read_compare_excel:
                 x_values.append(mean_recall)
                 y_values.append(mean_precision)
 
-            all_xticks = sorted(list(set(v for s in x_values for v in s)))
+            all_xticks = sorted(list({v for s in x_values for v in s}))
             last_xtick_inserted = 0
             xticks = [all_xticks[0]]
             for k in range(1, len(all_xticks)):
                 if np.abs(all_xticks[k] - all_xticks[last_xtick_inserted]) >= 0.01:
                     last_xtick_inserted = k
-                    xticks.append(all_xticks[k])
+                    xticks.append(all_xticks[last_xtick_inserted])
             xlabels = [f'{i:.2f}' for i in xticks]
             plt.xticks(ticks=xticks, labels=xlabels, rotation=20)
 
-            all_yticks = sorted(list(set(v for s in y_values for v in s)))
+            all_yticks = sorted(list({v for s in y_values for v in s}))
             last_ytick_inserted = 0
             yticks = [all_yticks[0]]
             for k in range(1, len(all_yticks)):
                 if np.abs(all_yticks[k] - all_yticks[last_ytick_inserted]) >= 0.01:
                     last_ytick_inserted = k
-                    yticks.append(all_yticks[k])
+                    yticks.append(all_yticks[last_ytick_inserted])
             # yticks = [all_yticks[0]] + list(all_yticks[1:-1:6]) + [all_yticks[-1]]
             ylabels = [f'{i:.2f}' for i in yticks]
             plt.yticks(ticks=yticks, labels=ylabels, rotation=25)
@@ -161,31 +157,41 @@ class read_compare_excel:
             for j, point_labels_set in enumerate(point_labels):
                 last_marked = 0
                 for i, label in enumerate(point_labels_set):
-                    if not (i > 0 and (np.abs(x_values[j][i] - x_values[j][last_marked]) < lim) and (
-                            np.abs(y_values[j][i] - y_values[j][last_marked]) < lim)):
+                    if (
+                        i <= 0
+                        or np.abs(x_values[j][i] - x_values[j][last_marked]) >= lim
+                        or np.abs(y_values[j][i] - y_values[j][last_marked]) >= lim
+                    ):
                         last_marked = i
-                        ax1.annotate(label, (x_values[j][i], y_values[j][i]),
-                                     (x_values[j][i] + 0.001, y_values[j][i] + 0.001), fontsize=20, fontweight='bold',
-                                     color='b' if j == 0 else 'r')
-
+                        ax1.annotate(
+                            label,
+                            (x_values[j][last_marked], y_values[j][last_marked]),
+                            (
+                                x_values[j][last_marked] + 0.001,
+                                y_values[j][last_marked] + 0.001,
+                            ),
+                            fontsize=20,
+                            fontweight='bold',
+                            color='b' if j == 0 else 'r',
+                        )
             recall_label = ' / '.join(recall_label.split('/'))
             precision_label = ' / '.join(precision_label.split('/'))
             plt.xlabel(recall_label, fontsize=20, fontweight='bold')
             plt.ylabel(precision_label, fontsize=20, fontweight='bold')
 
-            # plt.text((mean_recall.max() + mean_recall.min())/2, (mean_precision.max() + mean_precision.min())/2,
-            #          '$Precision = \\frac{TP}{TP+FP}$')
-            # plt.text(.9*mean_recall.max() + .1*mean_recall.min(), .9*mean_precision.max() + .1*mean_precision.min(),
-            #          "$Precision = \\frac{TP}{TP+FP}$\n\n$Recall = \\frac{TP}{TP+FN}$", size=20,
-            #          ha="center", va="center",
-            #          bbox=dict(boxstyle="round",
-            #                    ec=(1., 0.5, 0.5),
-            #                    fc=(1., 0.8, 0.8),
-            #                    )
-            #          )
+                # plt.text((mean_recall.max() + mean_recall.min())/2, (mean_precision.max() + mean_precision.min())/2,
+                #          '$Precision = \\frac{TP}{TP+FP}$')
+                # plt.text(.9*mean_recall.max() + .1*mean_recall.min(), .9*mean_precision.max() + .1*mean_precision.min(),
+                #          "$Precision = \\frac{TP}{TP+FP}$\n\n$Recall = \\frac{TP}{TP+FN}$", size=20,
+                #          ha="center", va="center",
+                #          bbox=dict(boxstyle="round",
+                #                    ec=(1., 0.5, 0.5),
+                #                    fc=(1., 0.8, 0.8),
+                #                    )
+                #          )
 
-            # ax1.fill_between(mean_recall, mean_precision + f1_s, mean_precision - f1_s, color='grey', alpha=.2,
-            #                 label=r'$\pm$ 1 std. dev.')
+                # ax1.fill_between(mean_recall, mean_precision + f1_s, mean_precision - f1_s, color='grey', alpha=.2,
+                #                 label=r'$\pm$ 1 std. dev.')
 
         # plt.ylabel(y, fontsize=10)
         if hues_was_added:
@@ -198,7 +204,7 @@ class read_compare_excel:
              violinplot: Optional[List[str]] = None):
 
         if f1_scores is None:
-            f1_scores = dict()
+            f1_scores = {}
 
         if violinplot is None:
             violinplot = []
@@ -208,17 +214,16 @@ class read_compare_excel:
         # keys_list = [m for m in self.excel_data.keys() if m in measures]
         keys_list = measures
 
+        num_of_rows = 2  # ceil(len(keys_list)/4)
+        num_of_columns = 1  # ceil(len(keys_list) / sqrt(len(keys_list)))
         for j, i in enumerate(range(0, len(keys_list), 2)):
 
             fig = plt.figure(f'{figure_num}_{j}')
             # For 16 graphs view
             fig.subplots_adjust(top=0.961, bottom=0.05, left=0.03, right=0.993)
             fig.suptitle(f'{key} ({j + 1})', fontsize=16, y=0.995)
-            num_of_rows = 2  # ceil(len(keys_list)/4)
-            num_of_columns = 1  # ceil(len(keys_list) / sqrt(len(keys_list)))
-            plot_num = 1  # if i < len(keys_list) - 1 else 2
             # for k in (keys_list[i: i+2] if i < len(keys_list) - 1 else keys_list[i: i+1]):
-            for k in keys_list[i: i + 2]:
+            for plot_num, k in enumerate(keys_list[i: i + 2], start=1):
                 if k in f1_scores:
                     self.plot_sub_plot(self.excel_data, self.ID, k, (num_of_rows, num_of_columns, plot_num), fig,
                                        f1_scores=f1_scores[k], hues_was_added=self.hues_was_added,
@@ -230,8 +235,6 @@ class read_compare_excel:
                 else:
                     self.plot_sub_plot(self.excel_data, self.ID, k, (num_of_rows, num_of_columns, plot_num), fig,
                                        hues_was_added=self.hues_was_added, hues_name=self.hues_name)
-                plot_num += 1
-
                 mng = plt.get_current_fig_manager()
                 # mng.resize(*mng.window.maxsize())
 
@@ -251,16 +254,17 @@ class read_compare_excel:
         # fig.subplots_adjust(top=0.88,bottom=0.11,left=0.04,right=0.97,wspace=0.12,hspace=0.2)
         fig.suptitle(key, fontsize=16)
         keys_list = list(self.excel_data.keys())[2:-1]
-        keys_list = list([self.excel_data.keys()[2], self.excel_data.keys()[3], self.excel_data.keys()[4],
-                          self.excel_data.keys()[-3], self.excel_data.keys()[-2]])
+        keys_list = [
+            self.excel_data.keys()[2],
+            self.excel_data.keys()[3],
+            self.excel_data.keys()[4],
+            self.excel_data.keys()[-3],
+            self.excel_data.keys()[-2],
+        ]
         num_of_rows = ceil(len(keys_list) / 2)
         num_of_columns = 2
-        plot_num = 1
-
-        for i in keys_list:
+        for plot_num, i in enumerate(keys_list, start=1):
             self.plot_sub_plot(self.excel_data, self.ID, i, (num_of_rows, num_of_columns, plot_num), fig)
-            plot_num += 1
-
         # Closing opened plots
         # for i in range(2, len(keys_list) + 1):
         #     plt.close(i)

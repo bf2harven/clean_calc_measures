@@ -187,7 +187,10 @@ class tumors_statistics():
                 debug.append(num_of_voxels)
                 tumors_with_diameter_mask[current_1_tumor] = 1
         tumors_with_diameter_labeled = measure.label(tumors_with_diameter_mask)
-        tumors_with_diameter_labeled = tuple((tumors_with_diameter_labeled, tumors_with_diameter_labeled.max()))
+        tumors_with_diameter_labeled = (
+            tumors_with_diameter_labeled,
+            tumors_with_diameter_labeled.max(),
+        )
         return tumors_with_diameter_labeled, tumors_with_diameter_mask, tumors_with_diameter_list
 
     def find_3_biggest_tumors(self, tumors_with_diameter_labeling):
@@ -205,8 +208,10 @@ class tumors_statistics():
             tumors_with_diameter_list.append(i)
             tumors_with_diameter_mask[tumors_with_diameter_labeling[0] == i] = 1
         tumors_with_diameter_mask_labeled = measure.label(tumors_with_diameter_mask)
-        tumors_with_diameter_mask_labeled = tuple(
-            (tumors_with_diameter_mask_labeled, tumors_with_diameter_mask_labeled.max()))
+        tumors_with_diameter_mask_labeled = (
+            tumors_with_diameter_mask_labeled,
+            tumors_with_diameter_mask_labeled.max(),
+        )
         return tumors_with_diameter_mask_labeled, tumors_with_diameter_mask, tumors_with_diameter_list
 
     @staticmethod
@@ -237,8 +242,7 @@ class tumors_statistics():
     def getLargestCC(segmentation):
         labels = measure.label(segmentation)
         assert (labels.max() != 0)  # assume at least 1 CC
-        largestCC = labels == np.argmax(np.bincount(labels.flat)[1:]) + 1
-        return largestCC
+        return labels == np.argmax(np.bincount(labels.flat)[1:]) + 1
 
     @staticmethod
     def CC(Map):
@@ -275,8 +279,7 @@ class tumors_statistics():
     @staticmethod
     def approximate_diameter(tumor_volume):
         r = ((3 * tumor_volume) / (4 * np.pi)) ** (1 / 3)
-        diameter = 2 * r
-        return diameter
+        return 2 * r
 
 
 class liver_statistics():
@@ -432,7 +435,10 @@ class liver_statistics():
                 debug.append(num_of_voxels)
                 tumors_with_diameter_mask[current_1_tumor] = 1
         tumors_with_diameter_labeled = measure.label(tumors_with_diameter_mask)
-        tumors_with_diameter_labeled = tuple((tumors_with_diameter_labeled, tumors_with_diameter_labeled.max()))
+        tumors_with_diameter_labeled = (
+            tumors_with_diameter_labeled,
+            tumors_with_diameter_labeled.max(),
+        )
         return tumors_with_diameter_labeled, tumors_with_diameter_mask, tumors_with_diameter_list
 
     def find_3_biggest_tumors(self, tumors_with_diameter_labeling):
@@ -450,8 +456,10 @@ class liver_statistics():
             tumors_with_diameter_list.append(i)
             tumors_with_diameter_mask[tumors_with_diameter_labeling[0] == i] = 1
         tumors_with_diameter_mask_labeled = measure.label(tumors_with_diameter_mask)
-        tumors_with_diameter_mask_labeled = tuple(
-            (tumors_with_diameter_mask_labeled, tumors_with_diameter_mask_labeled.max()))
+        tumors_with_diameter_mask_labeled = (
+            tumors_with_diameter_mask_labeled,
+            tumors_with_diameter_mask_labeled.max(),
+        )
         return tumors_with_diameter_mask_labeled, tumors_with_diameter_mask, tumors_with_diameter_list
 
     @staticmethod
@@ -482,8 +490,7 @@ class liver_statistics():
     def getLargestCC(segmentation):
         labels = measure.label(segmentation)
         assert (labels.max() != 0)  # assume at least 1 CC
-        largestCC = labels == np.argmax(np.bincount(labels.flat)[1:]) + 1
-        return largestCC
+        return labels == np.argmax(np.bincount(labels.flat)[1:]) + 1
 
     @staticmethod
     def CC(Map):
@@ -520,8 +527,7 @@ class liver_statistics():
     @staticmethod
     def approximate_diameter(tumor_volume):
         r = ((3 * tumor_volume) / (4 * np.pi)) ** (1 / 3)
-        diameter = 2 * r
-        return diameter
+        return 2 * r
 
 
 def write_to_excel(sheet_name, df, writer):
@@ -662,14 +668,22 @@ if __name__ == '__main__':
         liver_stats_res = liver_stats.calculate_statistics_by_diameter(0, calculate_ADDS=False, calculate_HD=False)
         tumors_stats_res = tumors_stats.calculate_statistics_by_diameter(0, three_biggest=False, calculate_ADDS=False, calculate_HD=False)
 
-        res = {'Filename': case_name}
-        res['Liver Dice'] = liver_stats_res['Dice']
-        res['New liver volume (cc)'] = liver_stats_res['Total tumor volume GT (cc)']
-        res['Old liver volume (cc)'] = liver_stats_res['Total tumor volume Predictions (cc)']
-        res['Delta between Liver volumes (cc)'] = liver_stats_res['Delta between total Liver volumes (cc)']
-        res['Delta between Liver volumes (%)'] = liver_stats_res['Delta between total Liver volumes (%)']
-        res['New tumors num of lesions'] = tumors_stats_res['Num_of_lesion']
-        res['Old tumors num of lesions'] = tumors_stats_res['Num_of_lesion_in_pred']
+        res = {
+            'Filename': case_name,
+            'Liver Dice': liver_stats_res['Dice'],
+            'New liver volume (cc)': liver_stats_res['Total tumor volume GT (cc)'],
+            'Old liver volume (cc)': liver_stats_res[
+                'Total tumor volume Predictions (cc)'
+            ],
+            'Delta between Liver volumes (cc)': liver_stats_res[
+                'Delta between total Liver volumes (cc)'
+            ],
+            'Delta between Liver volumes (%)': liver_stats_res[
+                'Delta between total Liver volumes (%)'
+            ],
+            'New tumors num of lesions': tumors_stats_res['Num_of_lesion'],
+            'Old tumors num of lesions': tumors_stats_res['Num_of_lesion_in_pred'],
+        }
         res['Delta between num of lesions'] = res['New tumors num of lesions'] - res['Old tumors num of lesions']
         res['Tumors Dice'] = tumors_stats_res['Dice']
         res['New tumors volume (cc)'] = tumors_stats_res['Total tumor volume GT (cc)']

@@ -54,7 +54,7 @@ def aggregate_pairwise_results_per_FU(ex_fn: str, output_ex_fn: str, agg: str = 
         elif agg == 'median':
             df = df.groupby('FU')[df.columns[1:-1]].median()
         else:
-            raise ValueError(f'The `agg` parameter must be either "mean" or "median".')
+            raise ValueError('The `agg` parameter must be either "mean" or "median".')
         df.reset_index(names='case_name', inplace=True)
 
         # save results
@@ -81,7 +81,7 @@ def merge_excel_results_files(ex_fns: List[str], output_ex_fn: str):
     None
     """
 
-    assert len(ex_fns) > 0
+    assert ex_fns
 
     writer = pd.ExcelWriter(output_ex_fn, engine='xlsxwriter')
 
@@ -190,7 +190,7 @@ def analyze_per_tumor_measures(gt_tumors_pred_tumors_roi: Tuple[str, str, str],
     # extract for each TP tumor, a list of all pred tumors intersecting with it
     intersections = get_tumors_intersections(gt_tumors, pred_tumors)
 
-    pred_tp_tumors = list(set(t for ts in intersections.values() for t in ts))
+    pred_tp_tumors = list({t for ts in intersections.values() for t in ts})
 
     voxelspacing = nifti_f.header.get_zooms()
 

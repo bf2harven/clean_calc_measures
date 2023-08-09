@@ -212,17 +212,7 @@ def write_registration_scores(pairs_paths: List[str], n_processes=None,
 
 
 if __name__ == '__main__':
-    # # load registration-scores
-    # registration_scores_df = pd.read_excel('/cs/casmip/rochman/Errors_Characterization/registration_scores.xlsx')
-    # registration_scores_df = registration_scores_df[registration_scores_df.columns[1:]]
-    # registration_scores_df = registration_scores_df[registration_scores_df['name'].str.startswith('BL_')]
-    #
-    # # extract the excluded pairs only
-    # excluded_pairs_names = registration_scores_df[registration_scores_df['Valid'] == 0]['name'].to_list()
-    pass
     excluded_set_dir = '/cs/casmip/rochman/Errors_Characterization/excluded_set'
-    # excluded_set_dir = '/cs/casmip/rochman/Errors_Characterization/corrected_segmentation_for_matching'
-    pass
     # # create excluded set
     # os.makedirs(excluded_set_dir, exist_ok=True)
     # for i, pair_name in enumerate(excluded_pairs_names):

@@ -39,9 +39,9 @@ def _surface_distances(result, reference, voxelspacing=None, connectivity=1):
     footprint = generate_binary_structure(result.ndim, connectivity)
 
     # test for emptiness
-    if 0 == np.count_nonzero(result):
+    if np.count_nonzero(result) == 0:
         raise RuntimeError('The first supplied array does not contain any binary object.')
-    if 0 == np.count_nonzero(reference):
+    if np.count_nonzero(reference) == 0:
         raise RuntimeError('The second supplied array does not contain any binary object.')
 
         # extract only 1-pixel border line of objects
@@ -52,9 +52,7 @@ def _surface_distances(result, reference, voxelspacing=None, connectivity=1):
     # Note: scipys distance transform is calculated only inside the borders of the
     #       foreground objects, therefore the input has to be reversed
     dt = distance_transform_edt(~reference_border, sampling=voxelspacing)
-    sds = dt[result_border]
-
-    return sds
+    return dt[result_border]
 
 
 def crop_to_relevant_joint_bbox(result, reference):
@@ -70,14 +68,12 @@ def get_slice_of_cropped_relevant_bbox(case: np.ndarray):
         xmax += 1
         ymax += 1
         zmax += 1
-        slc = np.s_[xmin: xmax, ymin: ymax, zmin: zmax]
+        return np.s_[xmin: xmax, ymin: ymax, zmin: zmax]
     else:
         xmin, xmax, ymin, ymax = bbox2_2D(case)
         xmax += 1
         ymax += 1
-        slc = np.s_[xmin: xmax, ymin: ymax]
-
-    return slc
+        return np.s_[xmin: xmax, ymin: ymax]
 
 
 def min_distance(result, reference, voxelspacing=None, connectivity: int = 1, crop_to_relevant_scope: bool = True):
@@ -125,11 +121,13 @@ def min_distance(result, reference, voxelspacing=None, connectivity: int = 1, cr
     """
     if crop_to_relevant_scope:
         result, reference = crop_to_relevant_joint_bbox(result, reference)
-    if np.any(np.logical_and(result, reference)):
-        md = np.float64(0)
-    else:
-        md = _surface_distances(result, reference, voxelspacing, connectivity).min()
-    return md
+    return (
+        np.float64(0)
+        if np.any(np.logical_and(result, reference))
+        else _surface_distances(
+            result, reference, voxelspacing, connectivity
+        ).min()
+    )
 
 
 def Hausdorff(result, reference, voxelspacing=None, connectivity: int = 1, crop_to_relevant_scope: bool = True):
@@ -371,8 +369,7 @@ def dice(gt_seg, prediction_seg):
 
 def approximate_diameter(volume):
     r = ((3 * volume) / (4 * np.pi)) ** (1 / 3)
-    diameter = 2 * r
-    return diameter
+    return 2 * r
 
 
 def get_connected_components(Map, connectivity=None):
@@ -384,8 +381,7 @@ def get_connected_components(Map, connectivity=None):
     cc_areas = ndimage.sum(Map, label_img, range(cc_num + 1))
     area_mask = (cc_areas <= 10)
     label_img[area_mask[label_img]] = 0
-    return_value = label(label_img)
-    return return_value
+    return label(label_img)
 
 
 def getLargestCC(segmentation, connectivity=1):
@@ -571,12 +567,10 @@ def expand_per_label(label_image: np.ndarray, dists_to_expand: Union[float, np.n
     min_dist_between_label_val = np.squeeze(np.take_along_axis(treated_distances, np.expand_dims(labels_out_ind, 0), 0), axis=0)
     labels_out_ind[min_dist_between_label_val == np.inf] = -1
     labels_out_ind += 1
-    
+
     labels_out = np.concatenate([[0], unique_labels])[labels_out_ind].astype(np.float32)
-    
-    if return_distance_cache:
-        return labels_out, distances
-    return labels_out
+
+    return (labels_out, distances) if return_distance_cache else labels_out
 
 
 def distance_transform_edt_for_certain_label(label_and_max_relevant_dist, label_image, voxelspacing, return_indices):
@@ -685,8 +679,6 @@ def find_pairs(baseline_moved_labeled, followup_labeled, reverse=False, voxelspa
                         sum = (overlap == j).sum()
                         biggest = j
 
-                    # in case the overlap of the current FU tumor with the current BL tumor
-                    # is grader than 10% of the BL or FU tumor
                     elif ((overlap == j).sum() / (working_followup_labeled == j).sum()) > 0.1 or (
                             (overlap == j).sum() / (working_baseline_moved_labeled == i).sum()) > 0.1:
                         # a match was found
@@ -695,11 +687,10 @@ def find_pairs(baseline_moved_labeled, followup_labeled, reverse=False, voxelspa
                                 list_of_pairs.append((int(reverse), dilate + 1, (j, i)))
                             else:
                                 list_of_pairs.append((j, i))
+                        elif return_iteration_and_reverse_indicator:
+                            list_of_pairs.append((int(reverse), dilate + 1, (i, j)))
                         else:
-                            if return_iteration_and_reverse_indicator:
-                                list_of_pairs.append((int(reverse), dilate + 1, (i, j)))
-                            else:
-                                list_of_pairs.append((i, j))
+                            list_of_pairs.append((i, j))
                         # zero the current FU tumor and the current BL tumor
                         bl_matched_tumors.append(i)
                         fu_matched_tumors.append(j)
@@ -711,11 +702,10 @@ def find_pairs(baseline_moved_labeled, followup_labeled, reverse=False, voxelspa
                         list_of_pairs.append((int(reverse), dilate + 1, (biggest, i)))
                     else:
                         list_of_pairs.append((biggest, i))
+                elif return_iteration_and_reverse_indicator:
+                    list_of_pairs.append((int(reverse), dilate + 1, (i, biggest)))
                 else:
-                    if return_iteration_and_reverse_indicator:
-                        list_of_pairs.append((int(reverse), dilate + 1, (i, biggest)))
-                    else:
-                        list_of_pairs.append((i, biggest))
+                    list_of_pairs.append((i, biggest))
 
                 # zero the current BL tumor and the FU tumor that has jost been
                 # marked as a match with the current BL tumor
@@ -724,7 +714,6 @@ def find_pairs(baseline_moved_labeled, followup_labeled, reverse=False, voxelspa
                 working_baseline_moved_labeled[working_baseline_moved_labeled == i] = 0
                 working_followup_labeled[working_followup_labeled == biggest] = 0
 
-            # in case there is only 1 FU tumor that intersect the current BL tumor
             elif follow_up_num.shape[0] > 1:
                 # a match was found
                 if reverse:
@@ -732,11 +721,10 @@ def find_pairs(baseline_moved_labeled, followup_labeled, reverse=False, voxelspa
                         list_of_pairs.append((int(reverse), dilate + 1, (follow_up_num[-1], i)))
                     else:
                         list_of_pairs.append((follow_up_num[-1], i))
+                elif return_iteration_and_reverse_indicator:
+                    list_of_pairs.append((int(reverse), dilate + 1, (i, follow_up_num[-1])))
                 else:
-                    if return_iteration_and_reverse_indicator:
-                        list_of_pairs.append((int(reverse), dilate + 1, (i, follow_up_num[-1])))
-                    else:
-                        list_of_pairs.append((i, follow_up_num[-1]))
+                    list_of_pairs.append((i, follow_up_num[-1]))
 
                 # zero the current BL tumor and the FU tumor that intersects it
                 bl_matched_tumors.append(i)
@@ -784,7 +772,7 @@ def match_2_cases(BL_tumors_labels, FU_tumors_labels, voxelspacing=None, max_dil
 
     resulting_list = list(list_of_pairs)
     if return_iteration_and_reverse_indicator:
-        if len(resulting_list) > 0:
+        if resulting_list:
             _, _, resulting_matches = zip(*resulting_list)
             resulting_list.extend(x for x in list_of_pairs2 if x[2] not in resulting_matches)
         else:
@@ -1255,14 +1243,23 @@ def write_to_excel(df, writer, columns_order, column_name_as_index, sheet_name='
             for i in range(1, 5):
                 worksheet.write(f'{f1_col_name}{n + 2 + i}', " ")
 
-    worksheet.conditional_format(f'$B$2:${xl_col_to_name(len(columns_order))}$' + str(len(df.axes[0]) - 4), {'type': 'formula',
-                                                                         'criteria': '=B2=B$' + str(len(df.axes[0])),
-                                                                         'format': max_format})
+    worksheet.conditional_format(
+        f'$B$2:${xl_col_to_name(len(columns_order))}${str(len(df.axes[0]) - 4)}',
+        {
+            'type': 'formula',
+            'criteria': f'=B2=B${len(df.axes[0])}',
+            'format': max_format,
+        },
+    )
 
-    worksheet.conditional_format(f'$B$2:${xl_col_to_name(len(columns_order))}$' + str(len(df.axes[0]) - 4), {'type': 'formula',
-                                                                         'criteria': '=B2=B$' + str(
-                                                                             len(df.axes[0]) - 1),
-                                                                         'format': min_format})
+    worksheet.conditional_format(
+        f'$B$2:${xl_col_to_name(len(columns_order))}${str(len(df.axes[0]) - 4)}',
+        {
+            'type': 'formula',
+            'criteria': f'=B2=B${str(len(df.axes[0]) - 1)}',
+            'format': min_format,
+        },
+    )
 
 
 
@@ -1349,21 +1346,15 @@ def approximate_sphere(relevant_points_in_real_space: np.ndarray, relevant_point
 
 
 def is_a_scan(case: np.ndarray) -> bool:
-    if np.unique(case).size <= 2:
-        return False
-    return True
+    return np.unique(case).size > 2
 
 
 def is_a_mask(case: np.ndarray) -> bool:
-    if np.any((case != 0) & (case != 1)):
-        return False
-    return True
+    return not np.any((case != 0) & (case != 1))
 
 
 def is_a_labeled_mask(case: np.ndarray, relevant_labels: Collection) -> bool:
-    if np.all(np.isin(case, relevant_labels)):
-        return True
-    return False
+    return bool(np.all(np.isin(case, relevant_labels)))
 
 
 def symlink_for_inner_files_in_a_dir(src: str, dst: str, map_file_basename: Callable = None,
@@ -1371,10 +1362,8 @@ def symlink_for_inner_files_in_a_dir(src: str, dst: str, map_file_basename: Call
     """makes a symbolic link of files in a directory"""
     if not os.path.isdir(src):
         raise Exception("symlink_for_inner_files works only for directories")
-    if src.endswith('/'):
-        src = src[:-1]
-    if dst.endswith('/'):
-        dst = dst[:-1]
+    src = src.removesuffix('/')
+    dst = dst.removesuffix('/')
     os.makedirs(dst, exist_ok=True)
     map_file_basename = (lambda x: x) if map_file_basename is None else map_file_basename
     filter_file_basename = (lambda x: True) if filter_file_basename is None else filter_file_basename
@@ -1382,9 +1371,8 @@ def symlink_for_inner_files_in_a_dir(src: str, dst: str, map_file_basename: Call
         file_basename = os.path.basename(file)
         if os.path.isdir(file):
             symlink_for_inner_files_in_a_dir(file, f'{dst}/{file_basename}')
-        else:
-            if filter_file_basename(file_basename):
-                os.symlink(file, f'{dst}/{map_file_basename(file_basename)}')
+        elif filter_file_basename(file_basename):
+            os.symlink(file, f'{dst}/{map_file_basename(file_basename)}')
 
 
 def scans_sort_key(name, full_path_is_given=False):
