@@ -1,16 +1,10 @@
 import sys
-
 import pandas
 from xlsxwriter.utility import xl_col_to_name
-
-#from notifications import notify
-
 from Errors_Characterization.utils import assd_and_hd
-
 from multiprocessing import Pool, cpu_count
 from functools import partial
 from typing import List, Tuple, Callable, Union, Optional
-# from medpy.metric import hd, assd
 import pandas as pd
 import numpy as np
 from scipy import ndimage
