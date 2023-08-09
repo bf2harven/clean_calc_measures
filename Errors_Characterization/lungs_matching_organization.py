@@ -9,7 +9,7 @@ def get_original_path(path):
     path = os.path.realpath(path)
     prefix = '/cs/usr/bennydv/Desktop/bennydv/'
     if path.startswith(prefix):
-        path = '/cs/casmip/bennydv/' + path[len(prefix):]
+        path = f'/cs/casmip/bennydv/{path[len(prefix):]}'
     return path
 
 

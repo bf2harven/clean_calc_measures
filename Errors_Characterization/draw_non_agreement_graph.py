@@ -138,22 +138,38 @@ pred_edges = sorted([e if 'bl' in e[0] else e[::-1] for e in pred_diff_G.edges],
 
 BL_n_tumors, FU_n_tumors = len(bl_tumors), len(fu_tumors)
 
-bl_new_weights = []
-for bl in bl_tumors:
-    bl_new_weights.append(bl_weights[int(bl.split('_')[0]) - 1])
-
-fu_new_weights = []
-for fu in fu_tumors:
-    fu_new_weights.append(fu_weights[int(fu.split('_')[0]) - 1])
-
+bl_new_weights = [bl_weights[int(bl.split('_')[0]) - 1] for bl in bl_tumors]
+fu_new_weights = [fu_weights[int(fu.split('_')[0]) - 1] for fu in fu_tumors]
 gt_edges = [(int(e[0].split('_')[0]), int(e[1].split('_')[0])) for e in gt_edges]
 pred_edges = [(int(e[0].split('_')[0]), int(e[1].split('_')[0])) for e in pred_edges]
 
-_draw_matching_graph(bl_tumors, fu_tumors, len(bl_tumors), len(fu_tumors), gt_edges, case_name + '_GT', bl_new_weights,
-                     fu_new_weights, saving_file_name=gt_save_fig_path, show=False, close_fig_at_end=False)
+_draw_matching_graph(
+    bl_tumors,
+    fu_tumors,
+    len(bl_tumors),
+    len(fu_tumors),
+    gt_edges,
+    f'{case_name}_GT',
+    bl_new_weights,
+    fu_new_weights,
+    saving_file_name=gt_save_fig_path,
+    show=False,
+    close_fig_at_end=False,
+)
 
-_draw_matching_graph(bl_tumors, fu_tumors, len(bl_tumors), len(fu_tumors), pred_edges, case_name + '_PRED', bl_new_weights,
-                     fu_new_weights, saving_file_name=pred_save_fig_path, show=False, close_fig_at_end=False)
+_draw_matching_graph(
+    bl_tumors,
+    fu_tumors,
+    len(bl_tumors),
+    len(fu_tumors),
+    pred_edges,
+    f'{case_name}_PRED',
+    bl_new_weights,
+    fu_new_weights,
+    saving_file_name=pred_save_fig_path,
+    show=False,
+    close_fig_at_end=False,
+)
 
 plt.show()
 

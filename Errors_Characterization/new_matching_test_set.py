@@ -20,15 +20,16 @@ def sort_key(name):
 
 
 def is_in_order(name1, name2):
-    key1 = sort_key(name1)
-    key2 = sort_key(name2)
-    if key1[1] > key2[1]:
-        return False
-    if key1[1] == key2[1] and key1[2] > key2[2]:
-        return False
-    if key1[1] == key2[1] and key1[2] == key2[2] and key1[3] > key2[3]:
-        return False
-    return True
+        key1 = sort_key(name1)
+        key2 = sort_key(name2)
+        if key1[1] > key2[1]:
+            return False
+        if key1[1] == key2[1]:
+                if key1[2] > key2[2]:
+                        return False
+                if key1[2] == key2[2] and key1[3] > key2[3]:
+                        return False
+        return True
 
 
 def diff_in_days(bl_name, fu_name):

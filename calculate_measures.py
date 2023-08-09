@@ -120,25 +120,25 @@ class tumors_statistics():
 
         # calculate diameter for each lesion in GT
         tumors_with_diameter_gt_unique, tumors_with_diameter_gt_matrix, tumors_with_diameter_gt = \
-            self.mask_by_diameter(self.unique_gt, diameter, oper)
+                self.mask_by_diameter(self.unique_gt, diameter, oper)
 
         # unique_gt = nib.Nifti1Image(tumors_with_diameter_gt_unique[0], self.gt_nifti.affine)
 
         # Find 3 biggest GT
         if three_biggest:
             tumors_with_diameter_gt_unique, tumors_with_diameter_gt_matrix, tumors_with_diameter_gt = \
-                self.find_3_biggest_tumors(tumors_with_diameter_gt_unique)
+                    self.find_3_biggest_tumors(tumors_with_diameter_gt_unique)
         # unique_gt = nib.Nifti1Image(tumors_with_diameter_gt_unique[0], self.gt_nifti.affine)
         # nib.save(unique_gt, self.gt_path.replace('.nii.gz', str(diameter) + '.nii.gz'))
 
         # calculate diameter for each lesion in Predictions
         tumors_with_diameter_predictions_matrix_unique, tumors_with_diameter_predictions_matrix, tumors_with_diameter_predictions = \
-            self.mask_by_diameter(self.unique_predictions, diameter, oper)
+                self.mask_by_diameter(self.unique_predictions, diameter, oper)
 
         # Find 3 biggest GT
         if three_biggest:
             tumors_with_diameter_predictions_matrix_unique, tumors_with_diameter_predictions_matrix, tumors_with_diameter_predictions = \
-                self.find_3_biggest_tumors(tumors_with_diameter_predictions_matrix_unique)
+                    self.find_3_biggest_tumors(tumors_with_diameter_predictions_matrix_unique)
         # unique_pred = nib.Nifti1Image(tumors_with_diameter_predictions_matrix_unique[0], self.gt_nifti.affine)
         # nib.save(unique_pred, self.predictions_path.replace('.nii.gz', str(diameter) + '.nii.gz'))
 
@@ -155,7 +155,7 @@ class tumors_statistics():
             # unique_predictions_touch_current_gt_tumor.pop(0)
             unique_predictions_touch_current_gt_tumor = np.unique((current_1_tumor_gt * self.unique_predictions[0]))
             unique_predictions_touch_current_gt_tumor = list(unique_predictions_touch_current_gt_tumor[unique_predictions_touch_current_gt_tumor != 0])
-            if len(unique_predictions_touch_current_gt_tumor) > 0:
+            if unique_predictions_touch_current_gt_tumor:
                 gt_lesions_with_diameter_TP[current_1_tumor_gt] = 1
             for j in unique_predictions_touch_current_gt_tumor:
                 current_1_tumor_pred = (self.unique_predictions[0] == j)
@@ -178,7 +178,7 @@ class tumors_statistics():
             # unique_gt_touch_current_pred_tumor.pop(0)
             unique_gt_touch_current_pred_tumor = np.unique((current_1_tumor_pred * self.unique_gt[0]))
             unique_gt_touch_current_pred_tumor = list(unique_gt_touch_current_pred_tumor[unique_gt_touch_current_pred_tumor != 0])
-            if len(unique_gt_touch_current_pred_tumor) > 0:
+            if unique_gt_touch_current_pred_tumor:
                 predict_lesions_with_diameter_TP[current_1_tumor_pred] = 1
 
         mean_ASSDs = float(format(np.mean(ASSDs), '.3f')) if ASSDs else np.nan
@@ -188,7 +188,7 @@ class tumors_statistics():
         # Segmentation statistics
 
         seg_TP, seg_FP, seg_FN = \
-            self.Segmentation_statistics(tumors_with_diameter_gt_matrix, predict_lesions_with_diameter_TP,
+                self.Segmentation_statistics(tumors_with_diameter_gt_matrix, predict_lesions_with_diameter_TP,
                                          tumors_with_diameter_predictions_matrix, gt_lesions_with_diameter_TP,
                                          debug=False)
 
@@ -212,7 +212,7 @@ class tumors_statistics():
         # Detection statistics
 
         detection_TP, detection_FP, detection_FN, precision, recall = \
-            self.Detection_statistics(predict_lesions_with_diameter_TP, tumors_with_diameter_gt_unique,
+                self.Detection_statistics(predict_lesions_with_diameter_TP, tumors_with_diameter_gt_unique,
                                       tumors_with_diameter_predictions_matrix_unique, three_biggest, debug=False)
         try:
             f1_score = 2 * precision * recall / (precision + recall)
@@ -278,7 +278,10 @@ class tumors_statistics():
                 debug.append(num_of_voxels)
                 tumors_with_diameter_mask[current_1_tumor] = 1
         tumors_with_diameter_labeled = measure.label(tumors_with_diameter_mask)
-        tumors_with_diameter_labeled = tuple((tumors_with_diameter_labeled, tumors_with_diameter_labeled.max()))
+        tumors_with_diameter_labeled = (
+            tumors_with_diameter_labeled,
+            tumors_with_diameter_labeled.max(),
+        )
         return tumors_with_diameter_labeled, tumors_with_diameter_mask, tumors_with_diameter_list
 
     def find_3_biggest_tumors(self, tumors_with_diameter_labeling):
@@ -296,8 +299,10 @@ class tumors_statistics():
             tumors_with_diameter_list.append(i)
             tumors_with_diameter_mask[tumors_with_diameter_labeling[0] == i] = 1
         tumors_with_diameter_mask_labeled = measure.label(tumors_with_diameter_mask)
-        tumors_with_diameter_mask_labeled = tuple(
-            (tumors_with_diameter_mask_labeled, tumors_with_diameter_mask_labeled.max()))
+        tumors_with_diameter_mask_labeled = (
+            tumors_with_diameter_mask_labeled,
+            tumors_with_diameter_mask_labeled.max(),
+        )
         return tumors_with_diameter_mask_labeled, tumors_with_diameter_mask, tumors_with_diameter_list
 
 
@@ -327,8 +332,7 @@ class tumors_statistics():
     def getLargestCC(segmentation):
         labels = measure.label(segmentation, connectivity=1)
         assert (labels.max() != 0)  # assume at least 1 CC
-        largestCC = labels == np.argmax(np.bincount(labels.flat)[1:]) + 1
-        return largestCC
+        return labels == np.argmax(np.bincount(labels.flat)[1:]) + 1
 
     @staticmethod
     def CC(Map):
@@ -365,8 +369,7 @@ class tumors_statistics():
     @staticmethod
     def approximate_diameter(tumor_volume):
         r = ((3 * tumor_volume) / (4 * np.pi)) ** (1 / 3)
-        diameter = 2 * r
-        return diameter
+        return 2 * r
 
 
 def write_to_excel(sheet_name, df, writer):
@@ -426,16 +429,23 @@ def write_to_excel(sheet_name, df, writer):
 
     worksheet = writer.sheets[sheet_name]
     worksheet.freeze_panes(1, 1)
-    worksheet.conditional_format(f'$B$2:${xl_col_to_name(len(columns_order))}$' + str(len(df.axes[0]) - 4),
-                                 {'type': 'formula',
-                                  'criteria': '=B2=B$' + str(len(df.axes[0])),
-                                  'format': max_format})
+    worksheet.conditional_format(
+        f'$B$2:${xl_col_to_name(len(columns_order))}${str(len(df.axes[0]) - 4)}',
+        {
+            'type': 'formula',
+            'criteria': f'=B2=B${len(df.axes[0])}',
+            'format': max_format,
+        },
+    )
 
-    worksheet.conditional_format(f'$B$2:${xl_col_to_name(len(columns_order))}$' + str(len(df.axes[0]) - 4),
-                                 {'type': 'formula',
-                                  'criteria': '=B2=B$' + str(
-                                      len(df.axes[0]) - 1),
-                                  'format': min_format})
+    worksheet.conditional_format(
+        f'$B$2:${xl_col_to_name(len(columns_order))}${str(len(df.axes[0]) - 4)}',
+        {
+            'type': 'formula',
+            'criteria': f'=B2=B${str(len(df.axes[0]) - 1)}',
+            'format': min_format,
+        },
+    )
 
     n = df.shape[0] - 5
     for col in np.arange(len(columns_order)) + 1:
@@ -573,7 +583,7 @@ def write_stats(GT_paths: List[str], pred_paths: List[str], liver_paths: List[st
 
         t = time()
 
-        print('Calculating threshold: ' + str(th))
+        print(f'Calculating threshold: {str(th)}')
 
         if n_processes is None:
             n_processes = cpu_count() - 2
@@ -601,7 +611,7 @@ def write_stats(GT_paths: List[str], pred_paths: List[str], liver_paths: List[st
         for cat in categories_to_calculate:
             write_to_excel(cat_to_sheet_name[cat], dfs[cat], writer)
 
-     
+
         writer.close()
         print(f'Finished th={th} in {calculate_runtime(t)} hh:mm:ss')
 

@@ -417,13 +417,24 @@ def execute_global_registration(bl_down, fu_down, bl_fpfh,
     print(":: RANSAC registration on downsampled point clouds.")
     print("   Since the downsampling voxel size is %.3f," % voxel_size)
     print("   we use a liberal distance threshold %.3f." % distance_threshold)
-    result = o3d.pipelines.registration.registration_ransac_based_on_feature_matching(
-        bl_down, fu_down, bl_fpfh, fu_fpfh, distance_threshold,
-        o3d.pipelines.registration.TransformationEstimationPointToPoint(False), 4, [
-            o3d.pipelines.registration.CorrespondenceCheckerBasedOnEdgeLength(0.9),
-            o3d.pipelines.registration.CorrespondenceCheckerBasedOnDistance(distance_threshold)],
-        o3d.pipelines.registration.RANSACConvergenceCriteria(4000000, 500))
-    return result
+    return o3d.pipelines.registration.registration_ransac_based_on_feature_matching(
+        bl_down,
+        fu_down,
+        bl_fpfh,
+        fu_fpfh,
+        distance_threshold,
+        o3d.pipelines.registration.TransformationEstimationPointToPoint(False),
+        4,
+        [
+            o3d.pipelines.registration.CorrespondenceCheckerBasedOnEdgeLength(
+                0.9
+            ),
+            o3d.pipelines.registration.CorrespondenceCheckerBasedOnDistance(
+                distance_threshold
+            ),
+        ],
+        o3d.pipelines.registration.RANSACConvergenceCriteria(4000000, 500),
+    )
 
 
 def execute_fast_global_registration(bl_down, fu_down, bl_fpfh,
@@ -454,24 +465,14 @@ def execute_fast_global_registration(bl_down, fu_down, bl_fpfh,
 
 def execute_ICP(bl_pc, fu_pc, voxel_size, distance_threshold_factor, init_transformation):
     distance_threshold = voxel_size * distance_threshold_factor
-    # print(":: Point-to-plane ICP registration is applied on original point")
-    # print(":: Point-to-point ICP registration is applied on original point")
-    # print("   clouds to refine the alignment. This time we use a strict")
-    # print("   distance threshold %.3f." % distance_threshold)
-
-    # radius_normal = voxel_size * 2
-    # print(":: Estimate normal with search radius %.3f." % radius_normal)
-    # bl_pc.estimate_normals(
-    #     o3d.geometry.KDTreeSearchParamHybrid(radius=radius_normal, max_nn=30))
-    # fu_pc.estimate_normals(
-    #     o3d.geometry.KDTreeSearchParamHybrid(radius=radius_normal, max_nn=30))
-    # result = o3d.pipelines.registration.registration_icp(
-    #     bl_pc, fu_pc, distance_threshold, init_transformation,
-    #     o3d.pipelines.registration.TransformationEstimationPointToPlane())
-    result = o3d.pipelines.registration.registration_icp(bl_pc, fu_pc, distance_threshold, init_transformation,
-                                                         o3d.pipelines.registration.TransformationEstimationPointToPoint(),
-                                                         o3d.pipelines.registration.ICPConvergenceCriteria(max_iteration=5000))
-    return result
+    return o3d.pipelines.registration.registration_icp(
+        bl_pc,
+        fu_pc,
+        distance_threshold,
+        init_transformation,
+        o3d.pipelines.registration.TransformationEstimationPointToPoint(),
+        o3d.pipelines.registration.ICPConvergenceCriteria(max_iteration=5000),
+    )
 
 
 def run_for_visualization_ICP(bl_pc_run, fu_pc_run, bl_pc_visualize, fu_pc_visualize, voxel_size, distance_threshold_factor, init_transformation,

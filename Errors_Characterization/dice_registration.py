@@ -25,8 +25,7 @@ class NeuralNetwork(nn.Module):
 
     def forward(self, x):
         x = self.flatten(x)
-        logits = self.linear_relu_stack(x)
-        return logits
+        return self.linear_relu_stack(x)
 
 
 def get_pc_as_tensor(mask: np.ndarray, voxel_to_real_space_transformation: Optional[np.ndarray] = None) -> torch.Tensor:

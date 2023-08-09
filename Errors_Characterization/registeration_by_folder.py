@@ -72,7 +72,7 @@ class liver_registeration():
         self.bl_name = bl_name
         self.fu_name = fu_name
         self.reversed=reversed
-        self.case_name = 'BL_' + self.bl_name + '_FU_' + self.fu_name
+        self.case_name = f'BL_{self.bl_name}_FU_{self.fu_name}'
 
     def registeration(self,trans_type='translation',liver_mask=True):
         for i, BL_Scan in enumerate(self.CT_BL):
@@ -93,7 +93,7 @@ class liver_registeration():
             Baseline_Tumors = self.Tumors_BL[i]
             FollowUp_Tumors = self.Tumors_FU[i]
 
-            if trans_type=='affine' or trans_type=='bspline':
+            if trans_type in ['affine', 'bspline']:
                 self.fix_origin(FollowUp, Baseline)
                 self.fix_origin(FollowUp, Baseline_Liver)
                 self.fix_origin(FollowUp, Baseline_Tumors)
@@ -114,7 +114,7 @@ class liver_registeration():
                 elastixImageFilter.SetMovingMask(sitk.ReadImage(Baseline_Liver,sitk.sitkUInt8))
 
             parameterMap = sitk.GetDefaultParameterMap(trans_type)
-            if trans_type == 'affine' or trans_type=='bspline':
+            if trans_type in ['affine', 'bspline']:
                 parameterMap['AutomaticTransformInitialization'] = ['false']
             elastixImageFilter.SetParameterMap(parameterMap)
 
@@ -126,41 +126,50 @@ class liver_registeration():
             resultLiver = sitk.Transformix(movingLiver, temp)
             resultTumors = sitk.Transformix(movingTumors, temp)
 
-            os.makedirs(self.dest_path + "/" + case_name + "/", exist_ok=True)
+            os.makedirs(f"{self.dest_path}/{case_name}/", exist_ok=True)
 
-            sitk.WriteImage(elastixImageFilter.GetResultImage(), self.dest_path + '/' + case_name + '/BL_Scan_CT.nii.gz')
+            sitk.WriteImage(
+                elastixImageFilter.GetResultImage(),
+                f'{self.dest_path}/{case_name}/BL_Scan_CT.nii.gz',
+            )
 
-            sitk.WriteImage(resultLiver, self.dest_path + '/' + case_name + '/BL_Scan_Liver.nii.gz')
-            sitk.WriteImage(resultTumors, self.dest_path + '/' + case_name+ '/BL_Scan_Tumors.nii.gz')
+            sitk.WriteImage(
+                resultLiver, f'{self.dest_path}/{case_name}/BL_Scan_Liver.nii.gz'
+            )
+            sitk.WriteImage(
+                resultTumors, f'{self.dest_path}/{case_name}/BL_Scan_Tumors.nii.gz'
+            )
 
 
             try:
                 # shutil.copyfile(FollowUp, self.dest_path + '/' + case_name+ '/FU_Scan_CT.nii.gz')
                 # shutil.copyfile(FollowUp_Liver, self.dest_path+ '/' + case_name + '/FU_Scan_Liver.nii.gz')
                 # shutil.copyfile(FollowUp_Tumors, self.dest_path + '/' + case_name+ '/FU_Scan_Tumors.nii.gz')
-                fu_scan_file = self.dest_path + '/' + case_name + '/FU_Scan_CT.nii.gz'
+                fu_scan_file = f'{self.dest_path}/{case_name}/FU_Scan_CT.nii.gz'
                 if not os.path.isfile(fu_scan_file):
                     os.symlink(FollowUp, fu_scan_file)
-                fu_liver_file = self.dest_path + '/' + case_name + '/FU_Scan_Liver.nii.gz'
+                fu_liver_file = f'{self.dest_path}/{case_name}/FU_Scan_Liver.nii.gz'
                 if not os.path.isfile(fu_liver_file):
                     os.symlink(FollowUp_Liver, fu_liver_file)
-                fu_tumors_file = self.dest_path + '/' + case_name + '/FU_Scan_Tumors.nii.gz'
+                fu_tumors_file = f'{self.dest_path}/{case_name}/FU_Scan_Tumors.nii.gz'
                 if not os.path.isfile(fu_tumors_file):
                     os.symlink(FollowUp_Tumors, fu_tumors_file)
             except:
                 print('Cannot overwrite file')
 
 
-            return ([self.dest_path + '/' + case_name + '/BL_Scan_CT.nii.gz'],
-                    [self.dest_path + '/' + case_name + '/BL_Scan_Liver.nii.gz'],
-                    [self.dest_path + '/' + case_name+ '/BL_Scan_Tumors.nii.gz'],
-                    [self.dest_path + '/' + case_name+ '/FU_Scan_CT.nii.gz'],
-                    [self.dest_path+ '/' + case_name + '/FU_Scan_Liver.nii.gz'],
-                    [self.dest_path+ '/' + case_name + '/FU_Scan_Tumors.nii.gz'],
-                    self.dest_path,
-                    self.bl_name,
-                    self.fu_name,
-                    self.reversed)
+            return (
+                [f'{self.dest_path}/{case_name}/BL_Scan_CT.nii.gz'],
+                [f'{self.dest_path}/{case_name}/BL_Scan_Liver.nii.gz'],
+                [f'{self.dest_path}/{case_name}/BL_Scan_Tumors.nii.gz'],
+                [f'{self.dest_path}/{case_name}/FU_Scan_CT.nii.gz'],
+                [f'{self.dest_path}/{case_name}/FU_Scan_Liver.nii.gz'],
+                [f'{self.dest_path}/{case_name}/FU_Scan_Tumors.nii.gz'],
+                self.dest_path,
+                self.bl_name,
+                self.fu_name,
+                self.reversed,
+            )
 
 
 
@@ -243,22 +252,22 @@ def multiprocess(folder):
 
         Followup_folder = i
         Followup_name = Followup_folder.split('/')[-1]
-        print(Baseline_name + ' ' +Followup_name)
+        print(f'{Baseline_name} {Followup_name}')
 
 
-        CT_1 = [Baseline_folder+'/scan.nii.gz']
-        if path.exists(Baseline_folder + '/liver.nii.gz'):
-            CT_1_Liver = [Baseline_folder + '/liver.nii.gz']
+        CT_1 = [f'{Baseline_folder}/scan.nii.gz']
+        if path.exists(f'{Baseline_folder}/liver.nii.gz'):
+            CT_1_Liver = [f'{Baseline_folder}/liver.nii.gz']
         else:
-            CT_1_Liver = [Baseline_folder + '/liver_pred.nii.gz']
-        CT_1_Lesions = [Baseline_folder + '/merged.nii.gz']
+            CT_1_Liver = [f'{Baseline_folder}/liver_pred.nii.gz']
+        CT_1_Lesions = [f'{Baseline_folder}/merged.nii.gz']
 
-        CT_2 = [Followup_folder + '/scan.nii.gz']
-        if path.exists(Followup_folder + '/liver.nii.gz'):
-            CT_2_Liver = [Followup_folder + '/liver.nii.gz']
+        CT_2 = [f'{Followup_folder}/scan.nii.gz']
+        if path.exists(f'{Followup_folder}/liver.nii.gz'):
+            CT_2_Liver = [f'{Followup_folder}/liver.nii.gz']
         else:
-            CT_2_Liver = [Followup_folder + '/liver_pred.nii.gz']
-        CT_2_Lesions = [Followup_folder + '/merged.nii.gz']
+            CT_2_Liver = [f'{Followup_folder}/liver_pred.nii.gz']
+        CT_2_Lesions = [f'{Followup_folder}/merged.nii.gz']
 
 
 

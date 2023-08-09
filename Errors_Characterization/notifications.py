@@ -11,7 +11,7 @@ def send_email(message: str, email_address: str = 'shalom.rochman@mail.huji.ac.i
     os.system(f'echo {message} | mail {email_address} -s "{subject}{": error" if error else ": no error"}"')
 
 
-loggers = dict()
+loggers = {}
 def notify_telegram_bot(message, telegram_chat_id='59039965',
                         telegram_token='1782044343:AAExorKyiZRHtgLcSuSQQRgajt0mkKx0d3w', error: bool = False):
     class RequestsHandler(Handler):
@@ -65,13 +65,14 @@ def notify_telegram_bot(message, telegram_chat_id='59039965',
 def notify(message: str, error: bool = False, platform='telegram'):
     if os.getlogin() != 'rochman':
         from colorama import Fore
-        print(Fore.YELLOW + f"Hi {os.getlogin().replace('.', ' ')}, it's Shalom Rochman, please delete the call to the 'notify' function in your code. "
-                            "I receive massages through it.\nThanks :-)")
+        print(
+            f"{Fore.YELLOW}Hi {os.getlogin().replace('.', ' ')}, it's Shalom Rochman, please delete the call to the 'notify' function in your code. I receive massages through it.\nThanks :-)"
+        )
         return
-    assert platform == 'telegram' or platform == 'mail' or platform == 'all'
-    if platform == 'telegram' or platform == 'all':
+    assert platform in ['telegram', 'mail', 'all']
+    if platform in ['telegram', 'all']:
         notify_telegram_bot(message, error=error)
-    elif platform == 'mail' or platform == 'all':
+    elif platform == 'mail':
         send_email(message, error=error)
 
 

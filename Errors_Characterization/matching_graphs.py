@@ -51,16 +51,16 @@ def _draw_matching_graph(bl_tumors: List[str], fu_tumors: List[str], n_bl_nodes:
 
     if bl_weights is not None:
         assert len(bl_weights) == n_bl_nodes, f'the bl_weights list have to contain {n_bl_nodes} weights and it contains {len(bl_weights)} weights: case_name = "{case_name}"'
-        temp_bl_weights = dict()
-        for i, bl_tumor in enumerate(bl_tumors):
-            temp_bl_weights[bl_tumor] = bl_weights[i]
+        temp_bl_weights = {
+            bl_tumor: bl_weights[i] for i, bl_tumor in enumerate(bl_tumors)
+        }
         bl_weights = temp_bl_weights
 
     if fu_weights is not None:
         assert len(fu_weights) == n_fu_nodes, f'the fu_weights list have to contain {n_fu_nodes} weights and it contains {len(fu_weights)} weights: case_name = "{case_name}"'
-        temp_fu_weights = dict()
-        for i, fu_tumor in enumerate(fu_tumors):
-            temp_fu_weights[fu_tumor] = fu_weights[i]
+        temp_fu_weights = {
+            fu_tumor: fu_weights[i] for i, fu_tumor in enumerate(fu_tumors)
+        }
         fu_weights = temp_fu_weights
 
     edges = [(f'{int(e[0])}_bl', f'{int(e[1])}_fu') for e in edges]
@@ -79,12 +79,24 @@ def _draw_matching_graph(bl_tumors: List[str], fu_tumors: List[str], n_bl_nodes:
     delta = 0.47 if bl_weights is not None else 0
     pos = dict(zip(bl_tumors, zip([delta] * n_bl_nodes, (max_range_to_draw * i / (n_bl_nodes - 1) for i in range(n_bl_nodes)[::-1]) if n_bl_nodes > 1 else (max_range_to_draw,))))
     delta = 0.47 if fu_weights is not None else 0
-    pos.update(
-        dict(zip(fu_tumors, zip([1 - delta] * n_fu_nodes, (max_range_to_draw * i / (n_fu_nodes - 1) for i in range(n_fu_nodes)[::-1]) if n_fu_nodes > 1 else (max_range_to_draw,)))))
+    pos |= dict(
+        zip(
+            fu_tumors,
+            zip(
+                [1 - delta] * n_fu_nodes,
+                (
+                    max_range_to_draw * i / (n_fu_nodes - 1)
+                    for i in range(n_fu_nodes)[::-1]
+                )
+                if n_fu_nodes > 1
+                else (max_range_to_draw,),
+            ),
+        )
+    )
 
     # define the nodes' labels and colors
     nodelist = bl_tumors + fu_tumors
-    nodes_labels = dict((n, int(n.split('_')[0])) for n in nodelist)
+    nodes_labels = {n: int(n.split('_')[0]) for n in nodelist}
     colors = get_itk_colors()
     node_color = [colors[nodes_labels[n]] for n in nodelist]
 
@@ -96,11 +108,7 @@ def _draw_matching_graph(bl_tumors: List[str], fu_tumors: List[str], n_bl_nodes:
 
     cf = plt.gcf()
     cf.set_facecolor("w")
-    if cf._axstack() is None:
-        ax = cf.add_axes((0, 0, 1, 1))
-    else:
-        ax = cf.gca()
-
+    ax = cf.add_axes((0, 0, 1, 1)) if cf._axstack() is None else cf.gca()
     ax.axis('off')
 
     if n_bl_nodes > 0 or n_fu_nodes > 0:
@@ -115,7 +123,11 @@ def _draw_matching_graph(bl_tumors: List[str], fu_tumors: List[str], n_bl_nodes:
             plt.text(pos[bl_tumors[0]][0] - 0.0555, pos[bl_tumors[0]][1] + x, '$_{(slice)}$ BL', fontsize=20)
             plt.text(pos[fu_tumors[0]][0] - 0.012, pos[fu_tumors[0]][1] + x, 'FU', fontsize=20)
 
-            bl_weights_pos = dict((v, (pos[v][0] - 0.032, pos[v][1])) for v in pos if v.endswith('bl'))
+            bl_weights_pos = {
+                v: (pos[v][0] - 0.032, pos[v][1])
+                for v in pos
+                if v.endswith('bl')
+            }
             nx.draw_networkx_labels(G, bl_weights_pos, labels=bl_weights, ax=ax, font_size=15)
 
         elif bl_weights is None and fu_weights is not None:
@@ -123,18 +135,30 @@ def _draw_matching_graph(bl_tumors: List[str], fu_tumors: List[str], n_bl_nodes:
             plt.text(pos[bl_tumors[0]][0] - 0.012, pos[bl_tumors[0]][1] + x, 'BL', fontsize=20)
             plt.text(pos[fu_tumors[0]][0] - 0.012, pos[fu_tumors[0]][1] + x, 'FU $_{(slice)}$', fontsize=20)
 
-            fu_weights_pos = dict((v, (pos[v][0] + 0.032, pos[v][1])) for v in pos if v.endswith('fu'))
+            fu_weights_pos = {
+                v: (pos[v][0] + 0.032, pos[v][1])
+                for v in pos
+                if v.endswith('fu')
+            }
             nx.draw_networkx_labels(G, fu_weights_pos, labels=fu_weights, ax=ax, font_size=15)
 
-        elif bl_weights is not None and fu_weights is not None:
+        elif bl_weights is not None:
 
             plt.text(pos[bl_tumors[0]][0] - 0.009, pos[bl_tumors[0]][1] + x, '$_{(slice)}$ BL', fontsize=20)
             plt.text(pos[fu_tumors[0]][0] - 0.0022, pos[fu_tumors[0]][1] + x, 'FU $_{(slice)}$', fontsize=20)
 
-            bl_weights_pos = dict((v, (pos[v][0] - 0.005, pos[v][1])) for v in pos if v.endswith('bl'))
+            bl_weights_pos = {
+                v: (pos[v][0] - 0.005, pos[v][1])
+                for v in pos
+                if v.endswith('bl')
+            }
             nx.draw_networkx_labels(G, bl_weights_pos, labels=bl_weights, ax=ax, font_size=15)
 
-            fu_weights_pos = dict((v, (pos[v][0] + 0.005, pos[v][1])) for v in pos if v.endswith('fu'))
+            fu_weights_pos = {
+                v: (pos[v][0] + 0.005, pos[v][1])
+                for v in pos
+                if v.endswith('fu')
+            }
             nx.draw_networkx_labels(G, fu_weights_pos, labels=fu_weights, ax=ax, font_size=15)
 
         else:

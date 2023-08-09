@@ -244,16 +244,8 @@ def measures(gt_seg: np.ndarray, pred_seg: np.ndarray) -> Tuple[float, int, int,
     FP = np.unique(pred_seg_unique_CC)
     FP = FP[FP != 0].size - TP
 
-    if TP + FP == 0:
-        precision = 1
-    else:
-        precision = TP / (TP + FP)
-
-    if TP + FN == 0:
-        recall = 1
-    else:
-        recall = TP / (TP + FN)
-
+    precision = 1 if TP + FP == 0 else TP / (TP + FP)
+    recall = 1 if TP + FN == 0 else TP / (TP + FN)
     F1_score = 2 * precision * recall / (precision + recall)
 
     return dice(gt_seg_TP, pred_seg_TP), TP, FP, FN, precision, recall, F1_score

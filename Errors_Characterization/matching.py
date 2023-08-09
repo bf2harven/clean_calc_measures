@@ -40,7 +40,7 @@ def calculate_statistics_over_matching(gt_matches: List[Tuple[int, int]], pred_m
     bl_tumors = set(range(1, n_bl_tumors + 1))
     fu_tumors = set(range(1, n_fu_tumors + 1))
 
-    if len(gt_matches) > 0:
+    if gt_matches:
         gt_bl_not_IS_tumors, gt_fu_not_IS_tumors = zip(*gt_matches)
     else:
         gt_bl_not_IS_tumors, gt_fu_not_IS_tumors = tuple(), tuple()
@@ -49,7 +49,7 @@ def calculate_statistics_over_matching(gt_matches: List[Tuple[int, int]], pred_m
     gt_fu_not_IS_tumors = set(gt_fu_not_IS_tumors)
     gt_fu_IS_tumors = fu_tumors - gt_fu_not_IS_tumors
 
-    if len(pred_matches) > 0:
+    if pred_matches:
         pred_bl_not_IS_tumors, pred_fu_not_IS_tumors = zip(*pred_matches)
     else:
         pred_bl_not_IS_tumors, pred_fu_not_IS_tumors = tuple(), tuple()

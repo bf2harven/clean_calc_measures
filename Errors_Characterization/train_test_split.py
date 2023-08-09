@@ -230,7 +230,7 @@ def k_means_train_test_split(data: np.ndarray, test_set_size_per_cluster: float,
         """
 
         def rng_integers(gen, low, high=None, size=None, dtype='int64',
-                         endpoint=False):
+                                 endpoint=False):
             """
             Return random integers from low (inclusive) to high (exclusive), or if
             endpoint=True, low (inclusive) to high (inclusive). Replaces
@@ -273,21 +273,20 @@ def k_means_train_test_split(data: np.ndarray, test_set_size_per_cluster: float,
             if isinstance(gen, Generator):
                 return gen.integers(low, high=high, size=size, dtype=dtype,
                                     endpoint=endpoint)
-            else:
-                if gen is None:
-                    # default is RandomState singleton used by np.random.
-                    gen = np.random.mtrand._rand
-                if endpoint:
-                    # inclusive of endpoint
-                    # remember that low and high can be arrays, so don't modify in
-                    # place
-                    if high is None:
-                        return gen.randint(low + 1, size=size, dtype=dtype)
-                    if high is not None:
-                        return gen.randint(low, high=high + 1, size=size, dtype=dtype)
+            if gen is None:
+                # default is RandomState singleton used by np.random.
+                gen = np.random.mtrand._rand
+            if endpoint:
+                # inclusive of endpoint
+                # remember that low and high can be arrays, so don't modify in
+                # place
+                if high is None:
+                    return gen.randint(low + 1, size=size, dtype=dtype)
+                if high is not None:
+                    return gen.randint(low, high=high + 1, size=size, dtype=dtype)
 
-                # exclusive
-                return gen.randint(low, high=high, size=size, dtype=dtype)
+            # exclusive
+            return gen.randint(low, high=high, size=size, dtype=dtype)
 
         dims = data.shape[1] if len(data.shape) > 1 else 1
         init = np.ndarray((k, dims))
