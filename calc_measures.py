@@ -28,7 +28,7 @@ class CalcMeasures:
                                 min_size=min_size)
         
         if target_path is not None:
-            shutil.move(f'{pred_masks_paths[0]}/tumors_measurements_-_th_1.xlsx', os.path.join(target_path, target_fname))
+            shutil.move(f'{pred_masks_paths}/tumors_measurements_-_th_1.xlsx', os.path.join(target_path, target_fname))
 
 
 
