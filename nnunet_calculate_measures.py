@@ -31,7 +31,7 @@ def extract_case_id(f):
 def nnunet_calculate_measures(gt_labels_path: str, pred_masks_paths: Union[str, List[str]],
                               roi_masks_path: Optional[str] = None, ths: Optional[List[float]] = None,
                               roi_is_gt: bool = True, n_processes: int = 10,
-                              region_based_inferencing: bool = False):
+                              region_based_inferencing: bool = False, min_size: int = 20):
     """
     Calculating measures for nnU-Net predictions.
 
@@ -70,45 +70,31 @@ def nnunet_calculate_measures(gt_labels_path: str, pred_masks_paths: Union[str, 
     # listing gt masks files
     GT_paths = sorted(glob(f'{gt_labels_path}/*.nii.gz'))
     case_ids = [extract_case_id(f) for f in GT_paths]
-    # listing ROI masks files
-    tempdir = None
     if roi_masks_path is None:
-        # create tmp ROIs
-        tempdir = tempfile.TemporaryDirectory()
-        roi_paths = []
-        for ind, f in enumerate(GT_paths):
-            nifti_f = nib.load(f)
-            tmp_liver = np.ones_like(nifti_f.get_fdata())
-            tmp_liver_path = f'{tempdir.name}/roi_{ind}.nii.gz'
-            nib.save(nib.Nifti1Image(tmp_liver, nifti_f.affine, nifti_f.header), tmp_liver_path)
-            roi_paths.append(tmp_liver_path)
-        cleanup_tempdir_at_the_end = True
+        roi_paths = [None for _ in GT_paths]
     else:
         roi_paths = sorted(glob(f'{roi_masks_path}/*.nii.gz'))
         assert_same_case_ids(case_ids, roi_paths)
-        cleanup_tempdir_at_the_end = False
 
     if ths is None:
         ths = [1]
 
-    # n = 1
     n = None
-
     for pp in pred_masks_paths:
         pred_paths = sorted(glob(f'{pp}/*.nii.gz'))
         assert_same_case_ids(case_ids, pred_paths)
 
         GT_paths, pred_paths, roi_paths = GT_paths[:n], pred_paths[:n], roi_paths[:n]
 
-        write_stats(GT_paths, pred_paths, roi_paths, ths, extract_case_id,
+        write_stats(GT_paths, pred_paths, roi_paths, 1, extract_case_id,
                     pp, roi_is_gt=roi_is_gt, n_processes=n_processes, reduce_ram_storage=True,
                     add_th_to_excel_name=True, labels_to_consider=(2 if region_based_inferencing else None),
-                    categories_to_calculate=('all', ))
+                    categories_to_calculate=('all', ), min_size=min_size)
 
-    if cleanup_tempdir_at_the_end:
-        tempdir.cleanup()
+    # if cleanup_tempdir_at_the_end:
+    #     tempdir.cleanup()
 
-def main_foo(gt_path,roi_path, pred_path, target_path=None, target_fname='tumors_measurements_-_th_1.xlsx'):
+def main_foo(gt_path,roi_path, pred_path, target_path=None, target_fname='tumors_measurements_-_th_1.xlsx', min_size=20):
     data_to_calc_for = [
         (
             gt_path,
@@ -121,18 +107,18 @@ def main_foo(gt_path,roi_path, pred_path, target_path=None, target_fname='tumors
     
     for gt_labels_path, roi_masks_path, pred_masks_paths, agg, region_based_inferencing, _ in data_to_calc_for:
         nnunet_calculate_measures(gt_labels_path, pred_masks_paths,
-                                roi_masks_path, region_based_inferencing=region_based_inferencing)
-    if agg is not None:
-        for pp in pred_masks_paths:
-            ex_fn = f'{pp}/tumors_measurements_-_th_1.xlsx'
-            assert os.path.isfile(ex_fn)
-            res_ex_fn = ex_fn.replace('.xlsx', f'_-_{agg}_agg_per_FU.xlsx')
-            assert ex_fn != res_ex_fn
-            aggregate_pairwise_results_per_FU(
-                ex_fn=ex_fn,
-                output_ex_fn=res_ex_fn,
-                agg=agg
-            )
+                                roi_masks_path, region_based_inferencing=region_based_inferencing, min_size=min_size)
+    # if agg is not None:
+    #     for pp in pred_masks_paths:
+    #         ex_fn = f'{pp}/tumors_measurements_-_th_1.xlsx'
+    #         assert os.path.isfile(ex_fn)
+    #         res_ex_fn = ex_fn.replace('.xlsx', f'_-_{agg}_agg_per_FU.xlsx')
+    #         assert ex_fn != res_ex_fn
+    #         aggregate_pairwise_results_per_FU(
+    #             ex_fn=ex_fn,
+    #             output_ex_fn=res_ex_fn,
+    #             agg=agg
+    #         )
 
     # move the results to the right place
     if target_path is not None:
@@ -178,7 +164,7 @@ if __name__ == '__main__':
             roi_path =None,
         pred_path='/cs/labs/josko/aarono/outputs/liver_segmentation/hyrad_no_shear/respaced_preds',
         target_path='/cs/labs/josko/aarono/outputs/liver_segmentation/hyrad_no_shear/respaced_preds',
-        target_fname='diff_liver_preds_gt_20_no_rem.xlsx')
+        target_fname='/cs/labs/josko/aarono/projects/clean_calc_measures/Errors_Characterization/diff_liver_preds_gt_0_no_rem2222.xlsx', min_size=0)
 
     # main_foo(gt_path='/cs/labs/josko/aarono/all_data/brain/edan_split/raw_split_symlinks/test/labels', 
     #      roi_path ='/cs/labs/josko/aarono/all_data/brain/edan_split/raw_split_symlinks/test/ROI',

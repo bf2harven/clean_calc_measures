@@ -19,7 +19,6 @@ from time import time, gmtime
 from skimage.morphology import remove_small_holes, remove_small_objects
 from scipy.ndimage import binary_fill_holes
 from tqdm.contrib.concurrent import process_map
-MIN_SIZE_THRESH = 20
 
 def bbox2_3D(img):
     x = np.any(img, axis=(1, 2))
@@ -35,7 +34,7 @@ def bbox2_3D(img):
 
 class tumors_statistics():
     def __init__(self, roi, gt, predictions, file_name, th, roi_is_gt=False,
-                 reduce_ram_storage=False, labels_to_consider: Optional[Union[int, List[int]]] = None):
+                 reduce_ram_storage=False, labels_to_consider: Optional[Union[int, List[int]]] = None, min_size=20):
         # Loading 3 niftis files
         self.file_name = file_name
         gt_nifti = nib.load(gt)
@@ -43,7 +42,7 @@ class tumors_statistics():
         pred_nifti = nib.load(predictions)
         self.predictions_path = predictions
         self.gt_path = gt
-        roi_nifti = nib.load(roi)
+        
 
         # Getting voxel_volume
         self.pix_dims = gt_nifti.header.get_zooms()
@@ -51,16 +50,17 @@ class tumors_statistics():
         self.affine = gt_nifti.affine
 
         # getting the 3 numpy arrays
-        self.roi = roi_nifti.get_fdata().astype(np.float32)
 
         self.gt = gt_nifti.get_fdata()
-        # self.gt[self.gt < 2] = 0
-        # self.gt[self.gt >= 2] = 1
+        if roi is None:
+            self.roi = np.ones_like(self.gt).astype(np.float32)
+        else:
+            self.roi = (nib.load(roi).get_fdata()>0).astype(np.float32)
         if labels_to_consider is not None:
             self.gt = np.isin(self.gt, labels_to_consider).astype(self.gt.dtype)
         
         self.gt = binary_fill_holes(self.gt, np.array([[0, 1, 0], [1, 1, 1], [0, 1, 0]]).reshape([3, 3, 1]).astype(self.gt.dtype))
-        self.gt = remove_small_objects(self.gt.astype(bool), min_size=MIN_SIZE_THRESH).astype(self.gt.dtype)
+        self.gt = remove_small_objects(self.gt.astype(bool), min_size=min_size).astype(self.gt.dtype)
 
         if roi_is_gt:
             self.roi = np.logical_or(self.roi, self.gt).astype(self.roi.dtype)
@@ -98,15 +98,12 @@ class tumors_statistics():
         self.predictions = binary_fill_holes(self.predictions,
                                              np.array([[0, 1, 0], [1, 1, 1], [0, 1, 0]]).reshape([3, 3, 1]).astype(
                                                  bool))
-        self.predictions = remove_small_objects(self.predictions, min_size=MIN_SIZE_THRESH).astype(self.predictions.dtype)
+        self.predictions = remove_small_objects(self.predictions, min_size=min_size).astype(self.predictions.dtype)
 
-        # unique_gt = nib.Nifti1Image(self.predictions, self.gt_nifti.affine)
-        # nib.save(unique_gt, predictions.replace('Prediction', 'TH'))
-        # nib.save(unique_gt, predictions.replace('Predicition', 'TH'))
-
+      
         # unique lesions for gt and predictions
-        self.unique_gt = self.CC(self.gt)
-        self.unique_predictions = self.CC(self.predictions)
+        self.unique_gt = self.CC(self.gt, min_size=min_size)
+        self.unique_predictions = self.CC(self.predictions, min_size=min_size)
 
         # self.num_of_lesions = self.unique_gt[1]
         # self.dice_score = self.dice(self.gt, self.predictions)
@@ -122,14 +119,12 @@ class tumors_statistics():
         tumors_with_diameter_gt_unique, tumors_with_diameter_gt_matrix, tumors_with_diameter_gt = \
                 self.mask_by_diameter(self.unique_gt, diameter, oper)
 
-        # unique_gt = nib.Nifti1Image(tumors_with_diameter_gt_unique[0], self.gt_nifti.affine)
 
         # Find 3 biggest GT
         if three_biggest:
             tumors_with_diameter_gt_unique, tumors_with_diameter_gt_matrix, tumors_with_diameter_gt = \
                     self.find_3_biggest_tumors(tumors_with_diameter_gt_unique)
-        # unique_gt = nib.Nifti1Image(tumors_with_diameter_gt_unique[0], self.gt_nifti.affine)
-        # nib.save(unique_gt, self.gt_path.replace('.nii.gz', str(diameter) + '.nii.gz'))
+       
 
         # calculate diameter for each lesion in Predictions
         tumors_with_diameter_predictions_matrix_unique, tumors_with_diameter_predictions_matrix, tumors_with_diameter_predictions = \
@@ -139,9 +134,6 @@ class tumors_statistics():
         if three_biggest:
             tumors_with_diameter_predictions_matrix_unique, tumors_with_diameter_predictions_matrix, tumors_with_diameter_predictions = \
                     self.find_3_biggest_tumors(tumors_with_diameter_predictions_matrix_unique)
-        # unique_pred = nib.Nifti1Image(tumors_with_diameter_predictions_matrix_unique[0], self.gt_nifti.affine)
-        # nib.save(unique_pred, self.predictions_path.replace('.nii.gz', str(diameter) + '.nii.gz'))
-
 
 
         # Find predicted tumor that touches 1 tumor of the predicition
@@ -150,9 +142,6 @@ class tumors_statistics():
         HDs: List[float] = []
         for i in tumors_with_diameter_gt:
             current_1_tumor_gt = (self.unique_gt[0] == i)
-            # unique_predictions = list(np.unique((current_1_tumor * tumors_with_diameter_predictions_matrix_unique[0])))
-            # unique_predictions_touch_current_gt_tumor = list(np.unique((current_1_tumor_gt * self.unique_predictions[0])))
-            # unique_predictions_touch_current_gt_tumor.pop(0)
             unique_predictions_touch_current_gt_tumor = np.unique((current_1_tumor_gt * self.unique_predictions[0]))
             unique_predictions_touch_current_gt_tumor = list(unique_predictions_touch_current_gt_tumor[unique_predictions_touch_current_gt_tumor != 0])
             if unique_predictions_touch_current_gt_tumor:
@@ -165,17 +154,9 @@ class tumors_statistics():
                     ASSDs += [_assd]
                     HDs += [_hd]
                 predict_lesions_TP[current_1_tumor_pred] = 1
-                # if calculate_ASSD:
-                #     ASSDs += [assd(current_1_tumor, tumors_with_diameter_predictions_matrix_unique[0] == j,
-                #                    voxelspacing=self.pix_dims, connectivity=2)]
-                # if calculate_HD:
-                #     HDs += [hd(current_1_tumor, tumors_with_diameter_predictions_matrix_unique[0] == j,
-                #                voxelspacing=self.pix_dims, connectivity=2)]
+    
         for i in tumors_with_diameter_predictions:
             current_1_tumor_pred = (self.unique_predictions[0] == i)
-            # unique_predictions = list(np.unique((current_1_tumor * tumors_with_diameter_predictions_matrix_unique[0])))
-            # unique_gt_touch_current_pred_tumor = list(np.unique((current_1_tumor_pred * self.unique_gt[0])))
-            # unique_gt_touch_current_pred_tumor.pop(0)
             unique_gt_touch_current_pred_tumor = np.unique((current_1_tumor_pred * self.unique_gt[0]))
             unique_gt_touch_current_pred_tumor = list(unique_gt_touch_current_pred_tumor[unique_gt_touch_current_pred_tumor != 0])
             if unique_gt_touch_current_pred_tumor:
@@ -335,7 +316,7 @@ class tumors_statistics():
         return labels == np.argmax(np.bincount(labels.flat)[1:]) + 1
 
     @staticmethod
-    def CC(Map):
+    def CC(Map, min_size=20):
         """
         Remove Small connected component
         :param Map:
@@ -344,7 +325,7 @@ class tumors_statistics():
         label_img = measure.label(Map)
         cc_num = label_img.max()
         cc_areas = ndimage.sum(Map, label_img, range(cc_num + 1))
-        area_mask = (cc_areas <= MIN_SIZE_THRESH)
+        area_mask = (cc_areas <= min_size)
         label_img[area_mask[label_img]] = 0
         return_value = measure.label(label_img)
         return return_value, return_value.max()
@@ -501,7 +482,7 @@ def replace_in_file_name(file_name, old_part, new_part):
 
 def calc_stats(files: Tuple[str, str, str], th: int, get_case_name: Callable[[str], str], roi_is_gt=True,
                reduce_ram_storage=False, labels_to_consider: Optional[Union[int, List[int]]] = None,
-               categories_to_calculate: Tuple[str, ...] = ('>0', '>5', '>10')):
+               categories_to_calculate: Tuple[str, ...] = ('>0', '>5', '>10'), min_size: int = 20):
 
     assert isinstance(categories_to_calculate, tuple)
 
@@ -524,7 +505,7 @@ def calc_stats(files: Tuple[str, str, str], th: int, get_case_name: Callable[[st
     file_name = get_case_name(GT_path)
 
     one_case = tumors_statistics(liver_path, GT_path, pred_path, file_name, th, roi_is_gt=roi_is_gt,
-                                 reduce_ram_storage=reduce_ram_storage, labels_to_consider=labels_to_consider)
+                                 reduce_ram_storage=reduce_ram_storage, labels_to_consider=labels_to_consider, min_size=min_size)
 
     calculate_ASSD = True
     calculate_HD = True
@@ -539,11 +520,11 @@ def calc_stats(files: Tuple[str, str, str], th: int, get_case_name: Callable[[st
     return tuple(res), categories_to_calculate
 
 
-def write_stats(GT_paths: List[str], pred_paths: List[str], liver_paths: List[str], ths: Union[int, List[int]],
+def write_stats(GT_paths: List[str], pred_paths: List[str], liver_paths: Union[List[None], List[str]], ths: Union[int, List[int]],
                 get_case_name: Callable[[str], str], results_dir: str, excel_suffix: str = '', roi_is_gt=True,
                 n_processes: Optional[int] = None, reduce_ram_storage=False, add_th_to_excel_name: bool = True,
                 labels_to_consider: Optional[Union[int, List[int]]] = None,
-                categories_to_calculate: Tuple[str, ...] = ('>0', '>5', '>10')):
+                categories_to_calculate: Tuple[str, ...] = ('>0', '>5', '>10'), min_size=20):
     """
     Supported categories are:
         - '>0'
@@ -590,12 +571,8 @@ def write_stats(GT_paths: List[str], pred_paths: List[str], liver_paths: List[st
 
         results = process_map(partial(calc_stats, th=th, get_case_name=get_case_name, roi_is_gt=roi_is_gt,
                                       reduce_ram_storage=reduce_ram_storage, labels_to_consider=labels_to_consider,
-                                      categories_to_calculate=categories_to_calculate), files, max_workers=n_processes)
-        # results = list(map(partial(calc_stats, th=th, get_case_name=get_case_name, roi_is_gt=roi_is_gt,
-        #                            reduce_ram_storage=reduce_ram_storage, labels_to_consider=labels_to_consider,
-        #                            categories_to_calculate=categories_to_calculate), files))
-
-
+                                      categories_to_calculate=categories_to_calculate, min_size=min_size), files, max_workers=n_processes)
+ 
         if add_th_to_excel_name:
             res_file_path = f'{results_dir}/tumors_measurements_-_th_{th}{"_-_" if excel_suffix != "" else ""}{excel_suffix}.xlsx'
         else:
